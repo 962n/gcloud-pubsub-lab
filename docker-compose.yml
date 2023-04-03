@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  pubsub:
+    platform: linux/x86_64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: "gcloud beta emulators pubsub start --project=$PUBSUB_PROJECT_ID --host-port=0.0.0.0:9009"
+    ports:
+      - "9009:9009"
+    environment:
+      - PUBSUB_PROJECT_ID=pubsub-project-id
+    healthcheck:
+      test: "! nc -z localhost 9009"
+      interval: 10s
+      retries: 20
+  subscriber:
+    build:
+      context: .
+      dockerfile: "air.Dockerfile"
+    volumes:
+      - ./subscriber:/go/src/subscriber
+    working_dir: /go/src/subscriber
+    environment:
+      - PUBSUB_EMULATOR_HOST=pubsub:9009
+    depends_on:
+      - pubsub
